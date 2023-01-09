@@ -1,9 +1,11 @@
-# bravo-frames
+# Johnny Bravo frame bot
+
 Twitter bot posting Johnny Bravo frames in order
+Uses the Tweepy library for using the twitter API
 
 The way I wrote the program depends on the organization of frames in the file system.
 In the project directory, there are 2 directories holding frames, `frames` and `spent_frames`.
-(I obviously don't commit the frame directories to github since they contain thousands upon thousands of images.)
+(I obviously don't commit the frame directories to github since they contain 10000's of images)
 
 All frames that haven't yet been posted are held in `frames`, organized in subdirectories by season and episode.
 One directory for each season; then in each season directory, one directory for each episode; then in each episode directory, one .png file for each frame.
