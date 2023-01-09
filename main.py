@@ -109,6 +109,9 @@ def run():
         os.rename(pathto(this_season, this_episode, this_frame), pathto(this_season, this_episode, this_frame, spent=True))
         #print("renamed",pathto(this_season, this_episode, this_frame),"to",pathto(this_season, this_episode, this_frame, spent=True))
 
+
+        check_dm((this_season, this_episode, this_frame))
+
         return True
 
 
@@ -117,6 +120,95 @@ def run():
         dm_me("Frames directory is empty!!!")
         
         return False
+
+
+def check_dm(current_frame):
+    #current frame is a tuple of (season, episode, frame)
+
+    old_dms=[]
+    if os.path.exists("dm_log.txt"):
+        dm_file=open("dm_log.txt") #a txt file containing the last 20 dms ids recieved (is cleared and rewritten consistently)
+        old_dms = dm_file.readlines()
+        dm_file.close()
+
+    curr_dms_objects = api.get_direct_messages()
+
+    #curr_dms_ids = []
+
+    new_dms = []
+
+    dm_file=open("dm_log.txt","w")
+    
+    for dm in curr_dms_objects:
+        dm_file.write(dm._json["id"]+"\n")
+
+    dm_file.close()
+
+    for curr_dm in curr_dms_objects:
+        if curr_dm._json["id"]+"\n" not in old_dms:
+            new_dms.append(curr_dm)
+
+    for dm in new_dms:
+        dm_text=dm._json["message_create"]["message_data"]["text"].lower()
+        
+        print("New DM:",dm._json["id"],dm_text)
+
+        pattern="find season (?P<s>\d) episode (?P<e>\d*) frame (?P<f>\d*)"
+
+        results = re.search(pattern, dm_text)
+
+        if results is not None:
+            sender_id=int(dm._json["message_create"]["sender_id"])
+            
+            season=int(results.group("s"))
+            episode=int(results.group("e"))
+            frame=int(results.group("f"))
+            
+            frame_to_find=(season, episode, frame)
+
+            print(f"user wants to find s{season}e{episode} frame {frame}")
+
+            message = generate_message(frame_to_find, current_frame)
+            
+            api.send_direct_message(sender_id,message)
+
+
+def generate_message(frame_to_find, current_frame):
+    
+    try:
+        title = titles[frame_to_find[0]][frame_to_find[1]]
+    except KeyError:
+        return "Hey, that episode doens't exist!"
+        # No such episode
+
+
+    if frame_to_find[0]>current_frame[0]: #season is greater than current season
+        return f"Sorry, I'm still on season {current_frame[0]}!"
+        #season hasnt been posted yet
+    elif frame_to_find[0]==current_frame[0] and frame_to_find[1]>current_frame[1]:
+        return f"Sorry, I'm only on season {current_frame[0]} episode {current_frame[1]}!"
+        #we're on this season, but haven't posted this episode yet
+    elif frame_to_find[0:2]==current_frame[0:2] and frame_to_find[2]>current_frame[2]:
+        return f"Sorry, I'm only up to frame {current_frame[2]} of that episode!"
+        #we're on this season AND episode but haven't posted this frame yet
+
+    filename = f"id_logs/s{frame_to_find[0]}e{frame_to_find[1]}_log.txt"
+    if not os.path.exists(filename):
+        return f"Sorry, I couldn't find that frame (I'm only on s{current_frame[0]}e{current_frame[1]} frame {current_frame[2]})"
+
+    logfile=open(filename, "r")
+    lines=logfile.readlines()
+    logfile.close()
+
+    if frame_to_find[2]-1>len(lines):
+        return f"Sorry, but I couldn't find that frame (I'm only on s{current_frame[0]}e{current_frame[1]} frame {current_frame[2]})"
+
+
+    line=lines[frames_to_find[2]-1]
+
+    tweet_id=line.split(":")[1]
+
+    return f"https://twitter.com/jbravo_frames/status/{tweet_id}"
 
 
 def pathto(season, episode=None, frame=None, spent=False):
