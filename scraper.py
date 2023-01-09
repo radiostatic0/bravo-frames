@@ -33,13 +33,13 @@ from secrets import pw
 service = Service(executable_path="C:\\Users\\yayar\\Documents\\geckodriver-v0.31.0-win64\\geckodriver.exe")
 
 options = Options()
-#options.add_argument("--headless")
+options.add_argument("--headless")
 
 driver = webdriver.Firefox(service=service, options=options)
 
 
-first_date = date(2022, 12, 7) #first date to scrape tweets from (inclusive)
-last_date = date(2022, 12, 7) #last date to scrape tweets from (inclusive)
+first_date = date(2022, 12, 6) #first date to scrape tweets from (inclusive)
+last_date = date(2022, 12, 6) #last date to scrape tweets from (inclusive)
 
 
 #Log in
@@ -85,7 +85,7 @@ while current_date<=last_date:
         buttons = popups[0].find_elements(By.CSS_SELECTOR,"div[role='button']")
         buttons[2].click() #hits the "Not Now" button
     
-    file=open(f"{str(current_date)}.txt","w")
+    file=open(f"scrape/{str(current_date)}.txt","w")
 
     prev_batch=[]
     this_batch=[]
