@@ -174,43 +174,48 @@ def check_dm(current_frame):
             api.send_direct_message(sender_id,message)
 
 
-def generate_message(frame_to_find, current_frame):
+def generate_message(frame_to_find_tuple, current_frame_tuple):
+
+    find_season, find_episode, find_frame = frame_to_find_tuple
+    current_season, current_episode, current_frame = current_frame_tuple
     
     try:
-        title = titles[frame_to_find[0]][frame_to_find[1]]
+        title = titles[find_season][find_episode]
     except KeyError:
-        return f"Hey, that episode doesn't even exist! (s{frame_to_find[0]}e{frame_to_find[1]})"
+        return f"Error fetching s{find_season}e{find_episode} frame {find_frame}: Hey, that episode doesn't even exist, silly!"
         # No such episode
 
 
-    if frame_to_find[0]>current_frame[0]: #season is greater than current season
-        return f"Sorry, I'm still on season {current_frame[0]}"
+    if find_season>current_season: #season is greater than current season
+        return f"Error fetching s{find_season}e{find_episode} frame {find_frame}: I'm still on season {current_season}"
         #season hasnt been posted yet
-    elif frame_to_find[0]==current_frame[0] and frame_to_find[1]>current_frame[1]:
-        return f"Sorry, I'm only on season {current_frame[0]} episode {current_frame[1]}"
+    elif find_season==current_season and find_episode>current_episode:
+        return f"Error fetching s{find_season}e{find_episode} frame {find_frame}: I'm only on season {current_season} episode {current_episode}"
         #we're on this season, but haven't posted this episode yet
-    elif frame_to_find[0:2]==current_frame[0:2] and frame_to_find[2]>current_frame[2]:
-        return f"Sorry, I'm only up to frame {current_frame[2]} of that episode"
+    elif (find_season, find_episode)==(current_season, current_episode) and find_frame>current_frame:
+        return f"Error fetching s{find_season}e{find_episode} frame {find_frame}: I'm only up to frame {current_frame} of that episode"
         #we're on this season AND episode but haven't posted this frame yet
-    elif frame_to_find[2]==0:
-        return f"Hey, my frame numbers start at 1 not 0, try again"
+    elif find_frame==0:
+        return f"Error fetching s{find_season}e{find_episode} frame {find_frame}: my frame numbers start at 1, silly!"
 
-    filename = f"id_logs/s{frame_to_find[0]}e{frame_to_find[1]}_log.txt"
+    filename = f"id_logs/s{find_season}e{find_episode}_log.txt"
     if not os.path.exists(filename):
-        return f"Sorry, but I couldn't find that frame (I'm presently on s{current_frame[0]}e{current_frame[1]} frame {current_frame[2]})"
+        return f"Error fetching s{find_season}e{find_episode} frame {find_frame}: Sorry, I couldn't find that frame \
+                (I'm presently on s{current_season}e{current_episode} frame {current_frame}) [Reason: File does not exist]"
 
     logfile=open(filename, "r")
     lines=logfile.readlines()
     logfile.close()
 
-    if frame_to_find[2]-1>len(lines):
-        if (frame_to_find[0]==current_frame[0] and frame_to_find[1]<current_frame[1]) or (frame_to_find[0]<current_frame[0]):
+    if find_frame>len(lines):
+        if (find_season==current_season and find_episode<current_episode) or (find_season<current_season):
             max_frame = lines[-1].split(":")[0]
-            return f"Sorry, looks like s{frame_to_find[0]}e{frame_to_find[1]} only has {max_frame} frames"
-        return f"Sorry, I couldn't find that frame (I'm presently on s{current_frame[0]}e{current_frame[1]} frame {current_frame[2]})"
+            return f"Looks like s{find_season}e{find_episode} only has {max_frame} frames"
+        return f"Error fetching s{find_season}e{find_episode} frame {find_frame}: Sorry, I couldn't find that frame \
+                (I'm presently on s{current_season}e{current_episode} frame {current_frame}) [Reason: Exceeds length of list]"
 
 
-    line=lines[frame_to_find[2]-1]
+    line=lines[find_frame-1]
 
     tweet_id=line.split(":")[1]
 
