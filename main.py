@@ -2,6 +2,7 @@ import sys
 import os
 import tweepy
 from time import sleep
+import re
 
 from secrets import consumer_key, consumer_secret, access_token, access_token_secret, bearer, my_id
 # ^ my twitter bot's access tokens (Get your own!!)
@@ -153,7 +154,7 @@ def check_dm(current_frame):
         
         print("New DM:",dm._json["id"],dm_text)
 
-        pattern="find season (?P<s>\d) episode (?P<e>\d*) frame (?P<f>\d*)"
+        pattern="find season (?P<s>\d) episode (?P<e>\d+) frame (?P<f>\d+)"
 
         results = re.search(pattern, dm_text)
 
@@ -178,33 +179,38 @@ def generate_message(frame_to_find, current_frame):
     try:
         title = titles[frame_to_find[0]][frame_to_find[1]]
     except KeyError:
-        return "Hey, that episode doens't exist!"
+        return f"Hey, that episode doesn't even exist! (s{frame_to_find[0]}e{frame_to_find[1]})"
         # No such episode
 
 
     if frame_to_find[0]>current_frame[0]: #season is greater than current season
-        return f"Sorry, I'm still on season {current_frame[0]}!"
+        return f"Sorry, I'm still on season {current_frame[0]}"
         #season hasnt been posted yet
     elif frame_to_find[0]==current_frame[0] and frame_to_find[1]>current_frame[1]:
-        return f"Sorry, I'm only on season {current_frame[0]} episode {current_frame[1]}!"
+        return f"Sorry, I'm only on season {current_frame[0]} episode {current_frame[1]}"
         #we're on this season, but haven't posted this episode yet
     elif frame_to_find[0:2]==current_frame[0:2] and frame_to_find[2]>current_frame[2]:
-        return f"Sorry, I'm only up to frame {current_frame[2]} of that episode!"
+        return f"Sorry, I'm only up to frame {current_frame[2]} of that episode"
         #we're on this season AND episode but haven't posted this frame yet
+    elif frame_to_find[2]==0:
+        return f"Hey, my frame numbers start at 1 not 0, try again"
 
     filename = f"id_logs/s{frame_to_find[0]}e{frame_to_find[1]}_log.txt"
     if not os.path.exists(filename):
-        return f"Sorry, I couldn't find that frame (I'm only on s{current_frame[0]}e{current_frame[1]} frame {current_frame[2]})"
+        return f"Sorry, but I couldn't find that frame (I'm presently on s{current_frame[0]}e{current_frame[1]} frame {current_frame[2]})"
 
     logfile=open(filename, "r")
     lines=logfile.readlines()
     logfile.close()
 
     if frame_to_find[2]-1>len(lines):
-        return f"Sorry, but I couldn't find that frame (I'm only on s{current_frame[0]}e{current_frame[1]} frame {current_frame[2]})"
+        if (frame_to_find[0]==current_frame[0] and frame_to_find[1]<current_frame[1]) or (frame_to_find[0]<current_frame[0]):
+            max_frame = lines[-1].split(":")[0]
+            return f"Sorry, looks like s{frame_to_find[0]}e{frame_to_find[1]} only has {max_frame} frames"
+        return f"Sorry, I couldn't find that frame (I'm presently on s{current_frame[0]}e{current_frame[1]} frame {current_frame[2]})"
 
 
-    line=lines[frames_to_find[2]-1]
+    line=lines[frame_to_find[2]-1]
 
     tweet_id=line.split(":")[1]
 
