@@ -253,7 +253,7 @@ while keep_running:
         raise(ex)
         keep_running=False
 
-    print("Sleeping for 60 sec...")
-    sleep(60)
+    print("Sleeping for 90 sec...")
+    sleep(90)
 
 
