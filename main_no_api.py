@@ -16,11 +16,19 @@ from datetime import date, timedelta
 
 from secrets import pw
 
+import os
+import sys
+
+from titles import titles
+
+frames_dir="frames"
+spentpath ="spent_frames"
+
 
 service = Service(executable_path="C:\\Users\\yayar\\Documents\\geckodriver-v0.31.0-win64\\geckodriver.exe")
 
 options = Options()
-#options.add_argument("--headless")
+options.add_argument("--headless")
 
 driver = webdriver.Firefox(service=service, options=options)
 
@@ -28,7 +36,7 @@ def init():
 
     #Log in
     driver.get("https://twitter.com/i/flow/login")
-    sleep(3)
+    sleep(5)
 
     username_input=driver.find_elements(By.CSS_SELECTOR,"input")[0]
     username_input.click()
@@ -73,7 +81,10 @@ def post(path, text):
 
     # cursor automatically is placed in tweet, we don't have to click it
     sleep(1)
-    ActionChains(driver).send_keys(text).perform()
+    ActionChains(driver).send_keys(text[0]).perform()
+    ActionChains(driver).send_keys(Keys.ENTER).perform()
+    ActionChains(driver).send_keys(text[1]).perform()
+    sleep(7)
 
     # click "upload image" button
     for i in range(2):
@@ -152,7 +163,7 @@ def run():
 
         #post to twitter
 
-        path=pathto(this_season,this_episode,this_frame)
+        path="C:\\Users\\yayar\\Desktop\\twitterbot\\"+pathto(this_season,this_episode,this_frame)
         
         '''
         upload_media = api.media_upload(pathto(this_season,this_episode,this_frame))
@@ -161,8 +172,8 @@ def run():
                           media_ids=[upload_media.media_id])
         '''
         
-        text=f"Season {this_season} Episode {this_episode}: {titles[this_season][this_episode]}"\
-              "\nFrame {this_frame} out of {frames[-1]}"
+        text=("Season "+ str(this_season) + " Episode " + str(this_episode) + ": " +\
+              titles[this_season][this_episode], "\nFrame " + str(this_frame) + " out of " + str(frames[-1]))
 
         tweetid=post(path, text)
         
