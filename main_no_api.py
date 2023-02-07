@@ -90,8 +90,24 @@ def post(season, episode, frame, maxframe):
         # go to compose tweet
         driver.get("https://twitter.com/jbravo_frames")
         sleep(3)
+
+        tweet_button_list=driver.find_elements(By.CSS_SELECTOR,"a[href='/compose/tweet']")
+        attempt_counter=0
         
-        tweet_button=driver.find_element(By.CSS_SELECTOR,"a[href='/compose/tweet']")
+        while len(tweet_button_list)==0:
+            driver.get("https://twitter.com/i/flow/login")
+            sleep(3)
+            driver.get("https://twitter.com/jbravo_frames")
+            attempt_counter=attempt_counter+1
+
+            tweet_button_list=driver.find_elements(By.CSS_SELECTOR,"a[href='/compose/tweet']")
+
+            if attempt_counter>=5:
+                raise Exception
+
+        tweet_button=tweet_button_list[0]
+        
+            
         tweet_button.click()    
         #driver.get("https://twitter.com/compose/tweet")
 
@@ -100,46 +116,55 @@ def post(season, episode, frame, maxframe):
         ActionChains(driver).send_keys(text[0]).perform()
         ActionChains(driver).send_keys(Keys.ENTER).perform()
         ActionChains(driver).send_keys(text[1]).perform()
-        sleep(7)
+        sleep(4)
 
         # click "upload image" button
         for i in range(2):
             ActionChains(driver).send_keys(Keys.TAB).perform()
-            sleep(0.5)
+            sleep(0.2)
         ActionChains(driver).send_keys(Keys.ENTER).perform()
         
         sleep(3)
-
-        # upload the image
-        pyautogui.typewrite(path + "\n", interval=0.1)
-        #sleep(3)
-        #pyautogui.press("enter")
-        sleep(5)
+        
+        # The file upload dialog should now be open, which we use pyautogui to interact with.
+        # upload the image (type the full filename into the file upload dialog and then press ENTER)
+        pyautogui.typewrite(path, interval=0.05)
+        sleep(2)
+        pyautogui.typewrite("\n")
 
         # post tweet.
+
+        '''
         for i in range(4):
             ActionChains(driver).send_keys(Keys.TAB).perform() # Tab over from the "media" button to the "post" button.
-            sleep(0.5)
+            sleep(0.2)
         sleep(2)
         
         ActionChains(driver).send_keys(Keys.ENTER).perform() # "Enter" to post the tweet.
+        '''
 
+        sleep(2)
+        post_button=driver.find_element(By.CSS_SELECTOR,'div[data-testid="tweetButton"]')
+        post_button.click()
+        
         lastpost=time()
         
         sleep(6)
 
         
-        # Below: "1" because "0" is the pinned tweet.
-        # NOTE: IF THERE IS NO PINNED TWEET, CHANGE THIS TO 0!
+        # We're still on @jbravo_frames' timeline. Get the last tweet posted to make sure it's the frame that we just tried to post.
         tweet_container=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[1]
+        # ^ NOTE: it is [1] and not [0] because [0] returns the pinned tweet. IF THERE IS NO PINNED TWEET, CHANGE TO [0]
+        
 
-        found_text = tweet_container.find_elements(By.CSS_SELECTOR,'span')[4].get_attribute("innerHTML") #the 5th <span> is the one with the tweet text.
+        found_text = tweet_container.find_elements(By.CSS_SELECTOR,'span')[4].get_attribute("innerHTML")
+        #the 5th <span> inside a tweet container is the element that contains the tweet text.
 
         results = re.search("^Season (?P<s>\d+) Episode (?P<e>\d+)", found_text)
 
         if results is None:
             print("Tweet doesn't look like a frame tweet:", found_text)
-            raise Exception
+            continue #try again from the top
         
         found_season=int(results.group("s"))
         found_episode=int(results.group("e"))
@@ -155,11 +180,13 @@ def post(season, episode, frame, maxframe):
             #break loop
         else:
             print(f"Tried to post s{season}e{episode} frame {frame},"\
-                  "instead found s{found_season}e{found_episode} frame {found_frame},"\
+                  f"instead found s{found_season}e{found_episode} frame {found_frame},"\
                   "trying again")
     
 
     tweetid = tweet_container.find_elements(By.CSS_SELECTOR,'a')[4].get_attribute("href")[41:60]
+    # ^ this extracts the tweet ID from the tweet (taken from the image link) for the logfile.
+    
     return tweetid
 
     '''
