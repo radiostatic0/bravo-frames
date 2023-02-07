@@ -8,7 +8,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 import pyautogui
 
-from time import sleep
+from time import sleep, time
 
 import re
 
@@ -42,7 +42,7 @@ def init():
     username_input.click()
     username_input.send_keys("jbravo_frames")
     username_input.send_keys(Keys.ENTER)
-    sleep(1)
+    sleep(2)
     pw_box=driver.find_element(By.CSS_SELECTOR,"input[type='password']")
     pw_box.send_keys(pw)
     pw_box.send_keys(Keys.ENTER)
@@ -75,12 +75,13 @@ def pathto(season, episode=None, frame=None, spent=False):
 
 
 def post(path, text):
+    global lastpost
 
     # go to compose tweet
     driver.get("https://twitter.com/compose/tweet")
 
     # cursor automatically is placed in tweet, we don't have to click it
-    sleep(1)
+    sleep(5)
     ActionChains(driver).send_keys(text[0]).perform()
     ActionChains(driver).send_keys(Keys.ENTER).perform()
     ActionChains(driver).send_keys(text[1]).perform()
@@ -89,22 +90,26 @@ def post(path, text):
     # click "upload image" button
     for i in range(2):
         ActionChains(driver).send_keys(Keys.TAB).perform()
+        sleep(0.5)
     ActionChains(driver).send_keys(Keys.ENTER).perform()
     sleep(2)
 
     # upload the image
     pyautogui.write(path)
-    sleep(1)
+    sleep(3)
     pyautogui.press("enter")
-    sleep(1)
+    sleep(3)
 
     # post tweet.
     for i in range(4):
         ActionChains(driver).send_keys(Keys.TAB).perform()
+        sleep(0.5)
     sleep(1)
     ActionChains(driver).send_keys(Keys.ENTER).perform()
 
-    sleep(2)
+    lastpost=time()
+    
+    sleep(6)
 
     # this line returns the div that contains the tweet of the first tweet on the timeline (which should be the tweet we just posted)
     tweet=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[0]
@@ -125,6 +130,7 @@ def log_tweet(tweetid, season, episode, frame):
 # Taken from main.py.
 
 def run():
+    
     #remove empty directories
     for dir, subdirs, files in os.walk("frames", topdown=False):
         if len(os.listdir(dir)) == 0 and dir!="frames":
@@ -215,13 +221,15 @@ def run():
 ########## main program
 
 init()
-
+lastpost=-1
 keep_running=True
 while keep_running:
     print("Running...")
+    timer=time()
     keep_running=run()
-    print("Sleeping for 90 sec...")
-    sleep(90)
+    time_remaining=90-(lastpost-timer)
+    print("Sleeping for",time_remaining,"sec...")
+    sleep(time_remaining)
 
 
 
