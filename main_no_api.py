@@ -28,7 +28,7 @@ spentpath ="spent_frames"
 service = Service(executable_path="C:\\Users\\yayar\\Documents\\geckodriver-v0.31.0-win64\\geckodriver.exe")
 
 options = Options()
-options.add_argument("--headless")
+#options.add_argument("--headless")
 
 driver = webdriver.Firefox(service=service, options=options)
 
@@ -73,52 +73,123 @@ def pathto(season, episode=None, frame=None, spent=False):
         retval = retval.replace("frames","spent_frames")
     return retval
 
-
-def post(path, text):
+#def post(path, text):
+def post(season, episode, frame, maxframe):
     global lastpost
 
-    # go to compose tweet
-    driver.get("https://twitter.com/compose/tweet")
+    path="C:\\Users\\yayar\\Desktop\\twitterbot\\"+pathto(season,episode,frame)
 
-    # cursor automatically is placed in tweet, we don't have to click it
-    sleep(5)
-    ActionChains(driver).send_keys(text[0]).perform()
-    ActionChains(driver).send_keys(Keys.ENTER).perform()
-    ActionChains(driver).send_keys(text[1]).perform()
-    sleep(7)
 
-    # click "upload image" button
-    for i in range(2):
-        ActionChains(driver).send_keys(Keys.TAB).perform()
-        sleep(0.5)
-    ActionChains(driver).send_keys(Keys.ENTER).perform()
-    sleep(2)
+    text=("Season "+ str(season) + " Episode " + str(episode) + ": " +\
+              titles[season][episode], "\nFrame " + str(frame) + " out of " + str(maxframe))
 
-    # upload the image
-    pyautogui.write(path)
-    sleep(3)
-    pyautogui.press("enter")
-    sleep(3)
 
-    # post tweet.
-    for i in range(4):
-        ActionChains(driver).send_keys(Keys.TAB).perform()
-        sleep(0.5)
-    sleep(1)
-    ActionChains(driver).send_keys(Keys.ENTER).perform()
+    do_try=True
 
-    lastpost=time()
+    while do_try:
+        # go to compose tweet
+        driver.get("https://twitter.com/jbravo_frames")
+        sleep(3)
+        
+        tweet_button=driver.find_element(By.CSS_SELECTOR,"a[href='/compose/tweet']")
+        tweet_button.click()    
+        #driver.get("https://twitter.com/compose/tweet")
+
+        # cursor automatically is placed in tweet, we don't have to click it
+        sleep(5)
+        ActionChains(driver).send_keys(text[0]).perform()
+        ActionChains(driver).send_keys(Keys.ENTER).perform()
+        ActionChains(driver).send_keys(text[1]).perform()
+        sleep(7)
+
+        # click "upload image" button
+        for i in range(2):
+            ActionChains(driver).send_keys(Keys.TAB).perform()
+            sleep(0.5)
+        ActionChains(driver).send_keys(Keys.ENTER).perform()
+        
+        sleep(3)
+
+        # upload the image
+        pyautogui.typewrite(path + "\n", interval=0.1)
+        #sleep(3)
+        #pyautogui.press("enter")
+        sleep(5)
+
+        # post tweet.
+        for i in range(4):
+            ActionChains(driver).send_keys(Keys.TAB).perform() # Tab over from the "media" button to the "post" button.
+            sleep(0.5)
+        sleep(2)
+        
+        ActionChains(driver).send_keys(Keys.ENTER).perform() # "Enter" to post the tweet.
+
+        lastpost=time()
+        
+        sleep(6)
+
+        
+        # Below: "1" because "0" is the pinned tweet.
+        # NOTE: IF THERE IS NO PINNED TWEET, CHANGE THIS TO 0!
+        tweet_container=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[1]
+
+        found_text = tweet_container.find_elements(By.CSS_SELECTOR,'span')[4].get_attribute("innerHTML") #the 5th <span> is the one with the tweet text.
+
+        results = re.search("^Season (?P<s>\d+) Episode (?P<e>\d+)", found_text)
+
+        if results is None:
+            print("Tweet doesn't look like a frame tweet:", found_text)
+            raise Exception
+        
+        found_season=int(results.group("s"))
+        found_episode=int(results.group("e"))
+
+        # extract frame num, max frame from tweet text
+        results = re.search("Frame (?P<f>\d*) out of (?P<max>\d*)", found_text)
+        found_frame = int(results.group("f"))
+        #maxframe = int(results.group("max"))
+
+        if found_season==season and found_episode==episode and found_frame==frame:
+            print(f"Validated that we just posted s{season}e{episode} frame {frame}!")
+            do_try=False
+            #break loop
+        else:
+            print(f"Tried to post s{season}e{episode} frame {frame},"\
+                  "instead found s{found_season}e{found_episode} frame {found_frame},"\
+                  "trying again")
     
-    sleep(6)
 
-    # this line returns the div that contains the tweet of the first tweet on the timeline (which should be the tweet we just posted)
-    tweet=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[0]
+    tweetid = tweet_container.find_elements(By.CSS_SELECTOR,'a')[4].get_attribute("href")[41:60]
+    return tweetid
 
-    tweetid = tweet.find_elements(By.CSS_SELECTOR,'a')[4].get_attribute("href")[41:60]
+    '''
+    if len(tweetlinks)>=5:
+        tweetid = tweetlinks[4].get_attribute("href")[41:60]
+
+    else:
+        print("Failed to get tweet id from href. Falling back on profile method...")
+        driver.get("https://twitter.com/jbravo_frames")
+        sleep(4)
+
+        try:
+            # Below: "1" because "0" is the pinned tweet.
+            # NOTE: IF THERE IS NO PINNED TWEET, CHANGE THIS TO 0!
+            tweet=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[1]
+
+                        
+            
+            tweetid = tweet.find_elements(By.CSS_SELECTOR,'a')[4].get_attribute("href")[41:60]
+            print("Succeeded at getting tweet id from profile.")
+            
+        except IndexError:
+            print("Failed to get tweet id from profile.")
+            tweetid=0
 
     return tweetid
 
     #print("Text:",text,"Id:",tweetid)
+
+    '''
 
 
 
@@ -167,24 +238,11 @@ def run():
         this_frame=frames[0]
         #print("Path to this frame:",pathto(this_season,this_episode,this_frame))
 
-        #post to twitter
 
-        path="C:\\Users\\yayar\\Desktop\\twitterbot\\"+pathto(this_season,this_episode,this_frame)
-        
-        '''
-        upload_media = api.media_upload(pathto(this_season,this_episode,this_frame))
-        tweet=api.update_status("Season "+str(this_season)+" Episode "+str(this_episode)+": "+
-                          titles[this_season][this_episode] + "\nFrame "+str(this_frame)+" out of "+str(frames[-1]),
-                          media_ids=[upload_media.media_id])
-        '''
-        
-        text=("Season "+ str(this_season) + " Episode " + str(this_episode) + ": " +\
-              titles[this_season][this_episode], "\nFrame " + str(this_frame) + " out of " + str(frames[-1]))
-
-        tweetid=post(path, text)
+        tweetid=post(this_season, this_episode, this_frame, frames[-1])
+        #tweetid=post(path, text)
         
         print("Posted season", this_season, "episode", this_episode, "frame", this_frame)
-        
 
         #write tweet id to logfile
         log_tweet(tweetid,this_season,this_episode,this_frame)
@@ -230,7 +288,4 @@ while keep_running:
     time_remaining=90-(lastpost-timer)
     print("Sleeping for",time_remaining,"sec...")
     sleep(time_remaining)
-
-
-
 
