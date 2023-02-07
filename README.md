@@ -1,7 +1,8 @@
 # Johnny Bravo frame bot
 
 Twitter bot posting Johnny Bravo frames in order.
-Uses the Tweepy library for using the twitter API.
+
+~~Uses the Tweepy library for using the twitter API.~~ **Now running 100% API-free using browser automation with Selenium, because thanks Elon! :P**
 
 The way I wrote the program depends on the organization of frames in the file system.
 In the project directory, there are 2 directories holding frames, `frames` and `spent_frames`.
