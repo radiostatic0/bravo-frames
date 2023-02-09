@@ -6,7 +6,7 @@ from selenium.webdriver.common.keys import Keys         #for sending keystrokes 
 
 from selenium.webdriver.common.action_chains import ActionChains
 
-import pyautogui
+import pyautogui # file upload dialog
 
 from time import sleep, time
 
@@ -17,18 +17,18 @@ from datetime import date, timedelta
 from secrets import pw
 
 import os
-import sys
 
 from titles import titles
+
 
 frames_dir="frames"
 spentpath ="spent_frames"
 
-
 service = Service(executable_path="C:\\Users\\yayar\\Documents\\geckodriver-v0.31.0-win64\\geckodriver.exe")
 
 options = Options()
-#options.add_argument("--headless")
+
+options.add_argument("--headless")
 
 driver = webdriver.Firefox(service=service, options=options)
 
@@ -38,7 +38,22 @@ def init():
     driver.get("https://twitter.com/i/flow/login")
     sleep(5)
 
-    username_input=driver.find_elements(By.CSS_SELECTOR,"input")[0]
+    attempts=0
+    do_try=True
+    username_input_list=driver.find_elements(By.CSS_SELECTOR,"input")
+
+    while len(username_input_list)==0:
+        attempts=attempts+1
+        sleep(3)
+        
+        username_input_list=driver.find_elements(By.CSS_SELECTOR,"input")
+
+        if attempts>=5:
+            raise Exception
+
+
+    username_input=username_input_list[0]
+
     username_input.click()
     username_input.send_keys("jbravo_frames")
     username_input.send_keys(Keys.ENTER)
@@ -46,20 +61,7 @@ def init():
     pw_box=driver.find_element(By.CSS_SELECTOR,"input[type='password']")
     pw_box.send_keys(pw)
     pw_box.send_keys(Keys.ENTER)
-    sleep(1)
-
-    '''
-    # Load home timeline, to try to invoke the annoying "turn on notifications" pop up before trying to post a tweet
-    driver.get("https://twitter.com/home")
-
     sleep(2)
-
-    #handle annoying "turn on notifications" popup if it appears
-    popups=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='sheetDialog'")
-    if len(popups)>0:
-        buttons = popups[0].find_elements(By.CSS_SELECTOR,"div[role='button']")
-        buttons[2].click() #hits the "Not Now" button
-    '''
 
 
 def pathto(season, episode=None, frame=None, spent=False):
@@ -73,7 +75,7 @@ def pathto(season, episode=None, frame=None, spent=False):
         retval = retval.replace("frames","spent_frames")
     return retval
 
-#def post(path, text):
+
 def post(season, episode, frame, maxframe):
     global lastpost
 
@@ -83,18 +85,21 @@ def post(season, episode, frame, maxframe):
     text=("Season "+ str(season) + " Episode " + str(episode) + ": " +\
               titles[season][episode], "\nFrame " + str(frame) + " out of " + str(maxframe))
 
-
+    attempts_to_post=0
+    
     do_try=True
-
     while do_try:
         # go to compose tweet
         driver.get("https://twitter.com/jbravo_frames")
         sleep(3)
 
+        # attempt to locate the tweet button
         tweet_button_list=driver.find_elements(By.CSS_SELECTOR,"a[href='/compose/tweet']")
+        
         attempt_counter=0
         
-        while len(tweet_button_list)==0:
+        while len(tweet_button_list)==0: # If we couldn't find it:
+            # sometimes we just need to go to the login page to refresh (we dont need to actually log in)
             driver.get("https://twitter.com/i/flow/login")
             sleep(3)
             driver.get("https://twitter.com/jbravo_frames")
@@ -102,6 +107,7 @@ def post(season, episode, frame, maxframe):
 
             tweet_button_list=driver.find_elements(By.CSS_SELECTOR,"a[href='/compose/tweet']")
 
+            # if we've tried 5 times now and failed, just give up, something must be wrong
             if attempt_counter>=5:
                 raise Exception
 
@@ -133,16 +139,6 @@ def post(season, episode, frame, maxframe):
         pyautogui.typewrite("\n")
 
         # post tweet.
-
-        '''
-        for i in range(4):
-            ActionChains(driver).send_keys(Keys.TAB).perform() # Tab over from the "media" button to the "post" button.
-            sleep(0.2)
-        sleep(2)
-        
-        ActionChains(driver).send_keys(Keys.ENTER).perform() # "Enter" to post the tweet.
-        '''
-
         sleep(2)
         post_button=driver.find_element(By.CSS_SELECTOR,'div[data-testid="tweetButton"]')
         post_button.click()
@@ -151,12 +147,17 @@ def post(season, episode, frame, maxframe):
         
         sleep(6)
 
-        
-        # We're still on @jbravo_frames' timeline. Get the last tweet posted to make sure it's the frame that we just tried to post.
-        tweet_container=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[1]
-        # ^ NOTE: it is [1] and not [0] because [0] returns the pinned tweet. IF THERE IS NO PINNED TWEET, CHANGE TO [0]
-        
 
+        ######################### VERIFY POST #######################
+        tweet_index=0
+        if len(driver.find_elements(By.CSS_SELECTOR, "div[data-testid='socialContext']"))==1:
+            #there is a pinned tweet. that means the tweet we want to check is now going to be index 1 instead of 0
+            tweet_index=1
+
+        # We're still on @jbravo_frames' timeline. Get the last tweet posted to make sure it's the frame that we just tried to post.
+        tweet_container=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[tweet_index]
+
+        
         found_text = tweet_container.find_elements(By.CSS_SELECTOR,'span')[4].get_attribute("innerHTML")
         #the 5th <span> inside a tweet container is the element that contains the tweet text.
 
@@ -175,13 +176,29 @@ def post(season, episode, frame, maxframe):
         #maxframe = int(results.group("max"))
 
         if found_season==season and found_episode==episode and found_frame==frame:
-            print(f"Validated that we just posted s{season}e{episode} frame {frame}!")
-            do_try=False
-            #break loop
+            
+            imgs = tweet_container.find_elements(By.CSS_SELECTOR,'img')
+
+            if len(imgs)>=2:
+            # A valid frame post should have 2 images: the account's profile pic, and the actual frame
+                print(f"Validated that we just posted s{season}e{episode} frame {frame}!")
+                do_try=False
+                #break loop
+
+            else:
+                print(f"Found our tweet for s{season}e{episode} frame {frame} but it has no image! "\
+                      "trying again")
+    
         else:
-            print(f"Tried to post s{season}e{episode} frame {frame},"\
-                  f"instead found s{found_season}e{found_episode} frame {found_frame},"\
+            print(f"Tried to post s{season}e{episode} frame {frame}, "\
+                  f"instead found s{found_season}e{found_episode} frame {found_frame}, "\
                   "trying again")
+
+        attempts_to_post = attempts_to_post+1
+
+        if attempts_to_post>=15:
+            # max attempts to post the same tweet is 15
+            raise Exception
     
 
     tweetid = tweet_container.find_elements(By.CSS_SELECTOR,'a')[4].get_attribute("href")[41:60]
@@ -189,43 +206,12 @@ def post(season, episode, frame, maxframe):
     
     return tweetid
 
-    '''
-    if len(tweetlinks)>=5:
-        tweetid = tweetlinks[4].get_attribute("href")[41:60]
-
-    else:
-        print("Failed to get tweet id from href. Falling back on profile method...")
-        driver.get("https://twitter.com/jbravo_frames")
-        sleep(4)
-
-        try:
-            # Below: "1" because "0" is the pinned tweet.
-            # NOTE: IF THERE IS NO PINNED TWEET, CHANGE THIS TO 0!
-            tweet=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[1]
-
-                        
-            
-            tweetid = tweet.find_elements(By.CSS_SELECTOR,'a')[4].get_attribute("href")[41:60]
-            print("Succeeded at getting tweet id from profile.")
-            
-        except IndexError:
-            print("Failed to get tweet id from profile.")
-            tweetid=0
-
-    return tweetid
-
-    #print("Text:",text,"Id:",tweetid)
-
-    '''
-
-
 
 def log_tweet(tweetid, season, episode, frame):
     logfile=open(f"id_logs/s{season}e{episode}_log.txt", "a")
     logfile.write(f"{frame}:{tweetid}\n")
     logfile.close()
-    
-# Taken from main.py.
+
 
 def run():
     
@@ -250,7 +236,6 @@ def run():
         for i in range(len(episodes)):
             episodes[i]=int(episodes[i])
         episodes.sort()
-        #print("Episode directories in season ",this_season,": ", episodes, sep="")
 
         this_episode=episodes[0]
 
@@ -260,22 +245,12 @@ def run():
             frames[i]=int(frames[i][:-4])
         frames.sort()
 
-        #print("Frames for season ", this_season, " episode ", this_episode, ": ", frames, sep="")
-
         this_frame=frames[0]
-        #print("Path to this frame:",pathto(this_season,this_episode,this_frame))
-
 
         tweetid=post(this_season, this_episode, this_frame, frames[-1])
-        #tweetid=post(path, text)
         
-        print("Posted season", this_season, "episode", this_episode, "frame", this_frame)
-
         #write tweet id to logfile
         log_tweet(tweetid,this_season,this_episode,this_frame)
-
-        #if this_frame==1:
-        #    send_new_episode_dm(this_season,this_episode,tweet.id)
 
         #move this frame to the corresponding spent frame directory
         if not(os.path.exists(spentpath)):
@@ -288,10 +263,6 @@ def run():
             os.mkdir(pathto(this_season, this_episode, spent=True))
 
         os.rename(pathto(this_season, this_episode, this_frame), pathto(this_season, this_episode, this_frame, spent=True))
-        #print("renamed",pathto(this_season, this_episode, this_frame),"to",pathto(this_season, this_episode, this_frame, spent=True))
-
-
-        #check_dm((this_season, this_episode, this_frame))
 
         return True
     
@@ -299,8 +270,6 @@ def run():
         print("Frames directory is empty.")
         
         return False
-
-
 
 
 ########## main program
