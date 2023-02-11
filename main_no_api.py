@@ -99,6 +99,7 @@ def post(season, episode, frame, maxframe):
         attempt_counter=0
         
         while len(tweet_button_list)==0: # If we couldn't find it:
+            print("Trying to find tweet button...")
             # sometimes we just need to go to the login page to refresh (we dont need to actually log in)
             driver.get("https://twitter.com/i/flow/login")
             sleep(3)
@@ -106,7 +107,6 @@ def post(season, episode, frame, maxframe):
             attempt_counter=attempt_counter+1
 
             tweet_button_list=driver.find_elements(By.CSS_SELECTOR,"a[href='/compose/tweet']")
-
             # if we've tried 5 times now and failed, just give up, something must be wrong
             if attempt_counter>=5:
                 raise Exception
@@ -125,21 +125,45 @@ def post(season, episode, frame, maxframe):
         sleep(4)
 
         # click "upload image" button
+
+        '''
         for i in range(2):
             ActionChains(driver).send_keys(Keys.TAB).perform()
             sleep(0.2)
         ActionChains(driver).send_keys(Keys.ENTER).perform()
-        
-        sleep(3)
-        
-        # The file upload dialog should now be open, which we use pyautogui to interact with.
-        # upload the image (type the full filename into the file upload dialog and then press ENTER)
-        pyautogui.typewrite(path, interval=0.05)
-        sleep(2)
-        pyautogui.typewrite("\n")
+        '''
+        try_upload_image=True
+        while try_upload_image:
+            # the media upload button is a div with the aria-label attribute set to "Add photos or video"
+            driver.find_element(By.CSS_SELECTOR,"div[aria-label='Add photos or video']").click()
+            
+            sleep(3)
+            
+            # The file upload dialog should now be open, which we use pyautogui to interact with.
+            # upload the image (type the full filename into the file upload dialog and then press ENTER)
+            pyautogui.typewrite(path, interval=0.05)
+            sleep(2)
+            pyautogui.typewrite("\n")
+            sleep(4)
+
+            # check if file got uploaded
+
+            # If there is an image uploaded, there will be a div element with the aria-label attribute set to
+            # "Remove media" (representing the X button to remove image/video), if there is no such element,
+            # that means the image didn't get uploaded, so we'll try again.
+            remove_media=len(driver.find_elements(By.CSS_SELECTOR, "div[aria-label='Remove media']"))
+            
+            if remove_media==0:
+                print("upload image failed, trying again")
+            elif remove_media==1:
+                try_upload_image=False
+            else:
+                # anything else is erroneous. stop execution
+                raise Exception
+                
+                
 
         # post tweet.
-        sleep(2)
         post_button=driver.find_element(By.CSS_SELECTOR,'div[data-testid="tweetButton"]')
         post_button.click()
         
@@ -282,6 +306,8 @@ while keep_running:
     timer=time()
     keep_running=run()
     time_remaining=90-(lastpost-timer)
+    if time_remaining<=0:
+        time_remaining=30
     print("Sleeping for",time_remaining,"sec...")
     sleep(time_remaining)
 
