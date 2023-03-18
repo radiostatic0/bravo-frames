@@ -28,7 +28,7 @@ service = Service(executable_path="C:\\Users\\yayar\\Documents\\geckodriver-v0.3
 
 options = Options()
 
-options.add_argument("--headless")
+#options.add_argument("--headless")
 
 driver = webdriver.Firefox(service=service, options=options)
 
@@ -38,6 +38,8 @@ def init():
     driver.get("https://twitter.com/i/flow/login")
     sleep(5)
 
+    input() #user has to log in then press ENTER on terminal to resume program
+    '''
     attempts=0
     do_try=True
     username_input_list=driver.find_elements(By.CSS_SELECTOR,"input")
@@ -56,12 +58,14 @@ def init():
 
     username_input.click()
     username_input.send_keys("jbravo_frames")
+    sleep(3)
     username_input.send_keys(Keys.ENTER)
-    sleep(2)
+    sleep(3)
     pw_box=driver.find_element(By.CSS_SELECTOR,"input[type='password']")
     pw_box.send_keys(pw)
     pw_box.send_keys(Keys.ENTER)
     sleep(2)
+    '''
 
 
 def pathto(season, episode=None, frame=None, spent=False):
@@ -171,21 +175,48 @@ def post(season, episode, frame, maxframe):
         
         sleep(6)
 
+        driver.get("https://twitter.com/jbravo_frames")
+
+        sleep(5)
+
 
         ######################### VERIFY POST #######################
         tweet_index=0
         if len(driver.find_elements(By.CSS_SELECTOR, "div[data-testid='socialContext']"))==1:
             #there is a pinned tweet. that means the tweet we want to check is now going to be index 1 instead of 0
             tweet_index=1
+            print("There is a pinned tweet")
 
         # We're still on @jbravo_frames' timeline. Get the last tweet posted to make sure it's the frame that we just tried to post.
-        tweet_container=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[tweet_index]
 
-        
+        while True:
+            try:
+                tweet_text_div = driver.find_elements(By.CSS_SELECTOR, "div[data-testid='tweetText']")[tweet_index]
+                found_text = tweet_text_div.find_elements(By.CSS_SELECTOR,"span")[0].get_attribute("innerHTML")
+                tweet_container = tweet_text_div.find_elements(By.XPATH, "../../..")[0] #container we want is great-grandparent of the tweet text div
+                break
+            except IndexError:
+                sleep(2)
+                driver.get("https://twitter.com/jbravo_frames")
+                sleep(2)
+
+        '''
+        while True:
+            try:
+                tweet_container=driver.find_elements(By.CSS_SELECTOR,"div[data-testid='cellInnerDiv']")[tweet_index]
+                break
+            except:
+                sleep(2)
+                driver.get("https://twitter.com/jbravo_frames")
+                sleep(2)
+
+
         found_text = tweet_container.find_elements(By.CSS_SELECTOR,'span')[4].get_attribute("innerHTML")
         #the 5th <span> inside a tweet container is the element that contains the tweet text.
-
+        '''
+        #print("Found text:",found_text)
         results = re.search("^Season (?P<s>\d+) Episode (?P<e>\d+)", found_text)
+        
 
         if results is None:
             print("Tweet doesn't look like a frame tweet:", found_text)
