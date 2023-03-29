@@ -1,14 +1,20 @@
 import sys
 import os
 
-path="C:\\Users\\yayar\\Desktop\\twitterbot\\frames\\2\\5"
+path="C:\\Users\\yayar\\Desktop\\twitterbot\\frames\\2\\6"
 
 
 filelist=os.listdir(path)
 
 for i in range(len(filelist)):
-    filelist[i]=int(filelist[i][:-4])
+    filelist[i]=float(filelist[i][:-4].replace("-","."))
 filelist.sort()
+
+for i in range(len(filelist)):
+    if "." in str(filelist[i]):
+        filelist[i] = str(filelist[i]).replace(".","-")
+    if "-0" in str(filelist[i]):
+        filelist[i] = str(filelist[i]).replace("-0","")
 
 #print(filelist)
 

@@ -336,7 +336,7 @@ while keep_running:
     print("Running...")
     timer=time()
     keep_running=run()
-    time_remaining=90-(lastpost-timer)
+    time_remaining=120-(lastpost-timer)
     if time_remaining<=0:
         time_remaining=30
     print("Sleeping for",time_remaining,"sec...")
