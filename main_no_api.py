@@ -4,6 +4,8 @@ from selenium.webdriver.firefox.options import Options  #for headless modes
 from selenium.webdriver.common.by import By             #for finding elements
 from selenium.webdriver.common.keys import Keys         #for sending keystrokes (logging in)
 
+from selenium.common.exceptions import NoSuchElementException
+
 from selenium.webdriver.common.action_chains import ActionChains
 
 import pyautogui # file upload dialog
@@ -32,13 +34,58 @@ options = Options()
 
 driver = webdriver.Firefox(service=service, options=options)
 
-def init():
+def login():
+    driver.get("https://twitter.com")
 
-    #Log in
-    driver.get("https://twitter.com/i/flow/login")
-    sleep(5)
+    while True:
+        #Log in
+        #driver.get("https://twitter.com/i/flow/login")
+        sleep(3)
+        while True:
+            try:
+                driver.find_element(By.CSS_SELECTOR,"a[data-testid='login']").click()
+                break
+            except NoSuchElementException:
+                print("caught NoSuchElementException, waiting...")
+                sleep(3)
 
-    input() #user has to log in then press ENTER on terminal to resume program
+        #input() #user has to log in then press ENTER on terminal to resume program
+
+        attempts=0
+        while True:
+            try:
+                username_input=driver.find_elements(By.CSS_SELECTOR,"input")[0]
+                break
+            except IndexError:
+                sleep(3)
+                attempts=attempts+1
+                if attempts>=5:
+                    raise Exception
+        
+        username_input.click()
+        username_input.send_keys("jbravo_frames")
+        sleep(3)
+        username_input.send_keys(Keys.ENTER)
+        sleep(3)
+        pw_box=driver.find_element(By.CSS_SELECTOR,"input[type='password']")
+        pw_box.send_keys(pw)
+        pw_box.send_keys(Keys.ENTER)
+        sleep(2)
+
+        # check if error dialogue was thrown
+
+        error_dialogs = driver.find_elements(By.CSS_SELECTOR,"div[data-testid='confirmationSheetDialog']")
+        if len(error_dialogs)>0:
+            print("Login failed, trying again..")
+            confirm_button = error_dialogs[0].find_element(By.CSS_SELECTOR,"div[data-testid='confirmationSheetConfirm']")
+            confirm_button.click()
+        else:
+            print("Login succeeded!")
+            break
+    # end while true
+
+    
+    #input()
     '''
     attempts=0
     do_try=True
@@ -101,6 +148,7 @@ def post(season, episode, frame, maxframe):
         tweet_button_list=driver.find_elements(By.CSS_SELECTOR,"a[href='/compose/tweet']")
         
         attempt_counter=0
+
         
         while len(tweet_button_list)==0: # If we couldn't find it:
             print("Trying to find tweet button...")
@@ -113,7 +161,9 @@ def post(season, episode, frame, maxframe):
             tweet_button_list=driver.find_elements(By.CSS_SELECTOR,"a[href='/compose/tweet']")
             # if we've tried 5 times now and failed, just give up, something must be wrong
             if attempt_counter>=5:
-                raise Exception
+                print("Relogging in...")
+                login()
+        
 
         tweet_button=tweet_button_list[0]
         
@@ -181,6 +231,7 @@ def post(season, episode, frame, maxframe):
 
 
         ######################### VERIFY POST #######################
+        print("Verifying post...")
         tweet_index=0
         if len(driver.find_elements(By.CSS_SELECTOR, "div[data-testid='socialContext']"))==1:
             #there is a pinned tweet. that means the tweet we want to check is now going to be index 1 instead of 0
@@ -329,7 +380,7 @@ def run():
 
 ########## main program
 
-init()
+login()
 lastpost=-1
 keep_running=True
 while keep_running:
