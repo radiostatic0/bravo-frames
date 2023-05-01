@@ -36,6 +36,7 @@ driver = webdriver.Firefox(service=service, options=options)
 
 def login():
     driver.get("https://twitter.com")
+    exceptions=0
 
     while True:
         #Log in
@@ -48,6 +49,9 @@ def login():
             except NoSuchElementException:
                 print("caught NoSuchElementException, waiting...")
                 sleep(3)
+                exceptions=exceptions+1
+                if exceptions>3:
+                    return #we must be logged in
 
         #input() #user has to log in then press ENTER on terminal to resume program
 
@@ -67,7 +71,18 @@ def login():
         sleep(3)
         username_input.send_keys(Keys.ENTER)
         sleep(3)
-        pw_box=driver.find_element(By.CSS_SELECTOR,"input[type='password']")
+
+        find_password_attempts=0
+        while True:
+            try:
+                pw_box=driver.find_element(By.CSS_SELECTOR,"input[type='password']")
+                break
+            except NoSuchElementException:
+                find_password_attempts = find_password_attempts + 1
+                if find_password_attempts >= 5:
+                    raise Exception
+                sleep(3)
+                
         pw_box.send_keys(pw)
         pw_box.send_keys(Keys.ENTER)
         sleep(2)
@@ -163,6 +178,9 @@ def post(season, episode, frame, maxframe):
             if attempt_counter>=5:
                 print("Relogging in...")
                 login()
+                sleep(4)
+                tweet_button_list=driver.find_elements(By.CSS_SELECTOR,"a[href='/compose/tweet']")
+
         
 
         tweet_button=tweet_button_list[0]
