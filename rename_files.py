@@ -1,7 +1,7 @@
 import sys
 import os
 
-path="C:\\Users\\yayar\\Desktop\\twitterbot\\frames\\2\\8"
+path="C:\\Users\\yayar\\Desktop\\twitterbot\\frames\\2\\9"
 
 
 filelist=os.listdir(path)
