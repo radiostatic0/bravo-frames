@@ -22,6 +22,13 @@ import os
 
 from titles import titles
 
+IS_PINNED_TWEET = True
+# The detection method of whether there is a pinned tweet, which determines
+# which tweet to check when making sure a frame posted successfully,
+# all of a sudden hasn't been working reliably.
+# So for now I am hard-coding whether or not there is a pinned tweet!
+# (yes, this means that if I unpin a tweet without replacing it, it will break!)
+
 
 frames_dir="frames"
 spentpath ="spent_frames"
@@ -251,10 +258,16 @@ def post(season, episode, frame, maxframe):
         ######################### VERIFY POST #######################
         print("Verifying post...")
         tweet_index=0
+        '''
         if len(driver.find_elements(By.CSS_SELECTOR, "div[data-testid='socialContext']"))==1:
             #there is a pinned tweet. that means the tweet we want to check is now going to be index 1 instead of 0
             tweet_index=1
             print("There is a pinned tweet")
+        else:
+            print("There is NOT a pinned tweet")
+        '''
+        if IS_PINNED_TWEET:
+            tweet_index = 1
 
         # We're still on @jbravo_frames' timeline. Get the last tweet posted to make sure it's the frame that we just tried to post.
 
