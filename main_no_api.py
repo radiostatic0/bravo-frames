@@ -44,6 +44,7 @@ driver = webdriver.Firefox(service=service, options=options)
 def login():
     driver.get("https://twitter.com")
     exceptions=0
+    '''
 
     while True:
         #Log in
@@ -105,9 +106,10 @@ def login():
             print("Login succeeded!")
             break
     # end while true
+    '''
 
     
-    #input()
+    input()
     '''
     attempts=0
     do_try=True
