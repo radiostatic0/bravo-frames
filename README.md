@@ -1,8 +1,16 @@
-# Johnny Bravo frame bot
+# UPDATE - @jbravo_frames has been suspended from twitter because API-less twitter automation is now prohibited
+
+ ## Johnny Bravo frame bot
 
 Twitter bot posting Johnny Bravo frames in order.
 
 ~~Uses the Tweepy library for using the twitter API.~~ **Now running 100% API-free using browser automation with Selenium, because thanks Elon! :P**
+
+main_no_api.py - the bot code for the API-less version.
+main.py - the old, now unused bot code for the API version.
+scraper.py - a utility I made to scrape jbravo_frames' timeline for saving tweet ID's of previously posted frames
+
+The directory id_logs contains one text document for each episode posted by the bot. It contains the frame number followed by the tweet ID corresponding to that frame. The tweet id can be used to make the link to that tweet.
 
 The way I wrote the program depends on the organization of frames in the file system.
 In the project directory, there are 2 directories holding frames, `frames` and `spent_frames`.
