@@ -1,3 +1,6 @@
+# Note to reader - here's the bot code that was running up until the account's suspension.
+# it has most of the same functionality of main.py except for the dm functionality but without the api.
+
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options  #for headless modes

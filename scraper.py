@@ -8,9 +8,6 @@ It uses the Selenium library so it is browser-based and very slow
 I did it this way because the Twitter API "Get User Timeline" method only accesses
 the most recent 3,200 of a user's tweets and jbravo_frames posts about 1,440 tweets every day
 so I could no longer use the API to access tweets older than a few days.
-
-So if you need to scrape Tweets from an account with less than 3,200 tweets,
-you should just use the API and not this slow as fuck program !!!
 """
 
 from selenium import webdriver

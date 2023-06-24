@@ -1,3 +1,7 @@
+# Note to reader - this is the original bot code for when the bot used the API.
+# For the api-less version, see 'main_no_api.py'
+
+
 import sys
 import os
 import tweepy

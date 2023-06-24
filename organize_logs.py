@@ -1,3 +1,5 @@
+# Note to reader - this program was a utility i wrote for converting scraped data created with 'scraper.py'
+# into nicer, more tweet id logs organized by episode rather than by date posted
 
 # Nov 19, 20, 21, 22, 23, 24, 25, 26
 

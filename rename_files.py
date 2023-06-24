@@ -1,3 +1,7 @@
+# Note to reader - this is another utility program I wrote to rename frame image files to
+# a more sensible sequence of numbers (because I deleted all the title theme frames causing
+# the frame numbers to start at like 300 by default)
+
 import sys
 import os
 
